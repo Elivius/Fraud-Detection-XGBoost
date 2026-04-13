@@ -113,47 +113,133 @@ This guide explains how to play with the settings in your code (Step 4 of your n
 
 ---
 
-## 8. `min_child_weight` (The "Source Requirement")
-**What it is:** The AI's rule about how many "sources" it needs before believing a pattern.
+## 8. `colsample_bytree` (The "Detective's Drill")
+**What it is:** If `subsample` is the "Coach's Drill" for the **People** (rows), then `colsample_bytree` is the "Detective's Drill" for the **Clues** (columns).
 
 > [!TIP]
-> **The Journalist Analogy:**
-> - **Weight 1**: The journalist writes a story because **one** person told them a rumor. (High risk of gossip/noise).
-> - **Weight 10**: The journalist refuses to write the story unless at least **10 people** confirm it. (Much more reliable).
+> **The "Mysterious Detective" Analogy**
+> Imagine a detective trying to solve a crime. Most criminals leave fingerprints, so the detective **always** looks at fingerprints first. The problem is, if the criminal is smart and wears gloves, the detective will be **clueless!**
+>
+> By setting `colsample_bytree: 0.8`, you are telling the AI: **"For this specific round, I am taking away 20% of your clues."**
+
+**The Step-by-Step Training Process:**
+In every round of your boosting, the AI "resets" and picks a different set of tools:
+
+- **Round 1 (Tree #1):** We hide the "Fingerprints" (let's say `V17` and `V12`). Now the AI is **forced** to learn from DNA, CCTV, and Witness statements.
+- **Round 2 (Tree #2):** We hide "DNA" instead. Now the AI is forced to look at Footprints and the "Amount" clue.
+- **Round 3 (Tree #3):** We hide the "CCTV" footage. The AI has to rely on the remaining clues to find the truth.
+
+**The Benefit:**
+By the time the AI reaches 2,000 trees, it has become a **Master Detective.** It doesn’t just rely on one "obvious" clue; it has learned how to find fraud using **every single clue** in your `X_train`!
 
 **The Results Seesaw:**
-- **Higher (10+)** = Very safe and robust, but might miss "rare" fraud logic.
-- **Lower (1)** = Very aggressive, catches every detail, but likely to learn "gossip" (noise).
+- **Higher (1.0)**: The AI might become **"Obsessed"** with one single clue (e.g., if `V17` is missing, the whole model breaks).
+- **Lower (0.5)**: Forces the AI to use variety, but it might miss the most obvious clues and lose its "vision."
+- **Sweet Spot (0.8)**: The **"Versatile Detective."** It uses a variety of clues and stays robust even if some data is missing or messy.
 
 ---
 
-## 9. `reg_alpha` / `reg_lambda` (The "Complexity Taxes")
-**What it is:** A "tax" the AI has to pay if its brain gets too complicated.
+## 9. `min_child_weight` (The "Rumor Filter")
+**What it is:** The minimum amount of "evidence" (weight) required to create a new branch in a tree.
 
 > [!TIP]
-> **The Toolbox Analogy:**
-> Imagine you have a toolbox. 
-> - **`reg_alpha`**: Forces you to throw away tools you haven't used in a year. It deletes useless clues.
-> - **`reg_lambda`**: Forces you to make sure no single tool is too heavy to carry. It balances the power of the clues.
+> **The "Courtroom Evidence" Analogy**
+> Imagine a detective hears a rumor: *"People who buy 1000 iPhones at 3 AM are always fraudsters."* > - If the detective only found **1 person** who did this, it might just be a weird coincidence (an outlier). 
+> - By setting `min_child_weight: 4`, you are telling the AI: **"Don't start a new investigation (branch) unless you have at least 4 similar cases to back up your story."**
+
+**The Step-by-Step Logic:**
+When the AI is building a tree, it looks for a way to split the data. 
+
+1. **The Proposal:** The AI thinks, *"Hey, let's make a rule for transactions over 5000 MYR."*
+2. **The Background Check:** It checks how many "points" of evidence are in that group. 
+3. **The Decision:**
+   - If there are **less than 4** cases: The AI says, *"That's just a rumor!"* and cancels the split.
+   - If there are **4 or more** cases: The AI says, *"This looks like a real pattern,"* and creates the branch.
+
+**The Benefit:**
+It stops the AI from being **"Gullible."** Without this, the AI might see one single weird transaction and create a massive, complex rule just for that one person. This is the ultimate defense against **Noise** in your data.
 
 **The Results Seesaw:**
-- **Higher (1.0+)** = A "Lean and Mean" brain that only uses the most important clues.
-- **Lower (0.01)** = A "Cluttered" brain that might get distracted by useless details.
+- **Higher (10 - 100)**: The AI becomes very **Conservative**. It will only learn from very obvious, large-scale patterns. This is great for very messy data but might miss "clever" small-scale fraud.
+- **Lower (1)**: The AI is very **Gullible**. it will believe every tiny outlier is a "pattern," leading to high overfitting.
+- **Sweet Spot (4 - 10)**: The **"Skeptical Detective."** It ignores the one-off weirdos but is fast to react once a few similar crimes happen.
 
 ---
 
-## 10. `colsample_bytree` (The "Limited Clues")
-**What it is:** Similar to `subsample`, but instead of hiding **people** (rows), it hides **clues** (columns).
+## 10. `reg_alpha` (The "Clutter Cutter")
+**What it is:** L1 Regularization. It adds a penalty for having too many complex rules, effectively forcing the AI to "simplify" its logic.
 
 > [!TIP]
-> **The Detective Analogy:**
-> Imagine a detective solving a crime.
-> - **Without this (1.0)**: The detective always looks at fingerprints first. If the criminal is smart, they might trick the detective's obsession.
-> - **With this (0.8)**: We hide the fingerprints sometimes! Now the detective is forced to look at DNA, Footprints, and CCTV. It makes them a better overall detective.
+> **The "Minimalist Detective" Analogy**
+> Imagine a detective's desk is covered in 1,000 files. Most of them are useless (junk mail, old receipts). If the detective tries to read every single paper, they'll get distracted and miss the real criminal.
+> 
+> By setting `reg_alpha: 0.1`, you are telling the AI: **"If a clue is only 1% helpful, throw it in the trash. I only want you to focus on the clues that actually matter."**
+
+**The Step-by-Step Logic:**
+`reg_alpha` looks at the "importance" of every rule the AI creates.
+
+1. **The Evaluation:** The AI creates a tiny rule for a specific transaction amount.
+2. **The Penalty:** `reg_alpha` checks: *"Does this rule help catch fraud significantly, or is it just extra noise?"*
+3. **The Eraser:** If the rule is too weak, `reg_alpha` applies a penalty that essentially **erases** that rule (turns its weight to zero).
+
+**The Mathematical Logic: How it "Knows" a Clue is Useless**
+It doesn't "think" like a human; it uses a **"Penalty"** in the loss function to handle the decision-making. 
+
+> [!IMPORTANT]
+> **The "Tax Collector" Analogy:**
+> Imagine the AI wants to hire a new clue (like "Transaction Time"). In a standard model, clues are "free" to use. But with `reg_alpha`, every clue has to pay a **Tax**. 
+> - **The Goal:** The AI wants the lowest possible error score.
+> - **The Penalty:** `reg_alpha` adds the "size" of the rule to that error score.
+
+**The Internal Calculation:**
+- **Scenario A: A "Strong" Clue**
+    - **Rule Benefit:** Adds **+10.0** to accuracy.
+    - **The Penalty (`reg_alpha`):** Subtracts **-0.1** for complexity.
+    - **Result:** **+9.9** (The score is positive, so the rule stays!)
+
+- **Scenario B: A "Useless" (Clutter) Clue**
+    - **Rule Benefit:** Adds **+0.05** to accuracy (it's a very weak, random pattern).
+    - **The Penalty (`reg_alpha`):** Subtracts **-0.1** for complexity.
+    - **Result:** **-0.05** (The rule makes the model "poorer" because the tax is higher than the benefit. **The AI deletes the rule.**)
+
+**The Benefit:**
+It creates a **"Lean Model."** It prevents the AI from becoming "over-complicated" by focusing on a thousand tiny, useless details. This makes your "Antigravity" agent faster and much better at handling new, unseen data because it isn't distracted by "clutter."
 
 **The Results Seesaw:**
-- **Higher (1.0)** = The AI might become "obsessed" with one single clue (overfitting).
-- **Lower (0.5)** = Forces the AI to use variety, but it might miss the most obvious clues.
+- **Higher (1.0 - 10.0)**: The AI becomes a **Extreme Minimalist**. It might delete clues that were actually somewhat useful, making the model too simple (Underfitting).
+- **Lower (0.001)**: The AI is a **Hoarder**. It keeps every tiny, useless rule, leading to a messy, "cluttered" model (Overfitting).
+- **Sweet Spot (0.1)**: The **"Organized Detective."** It keeps all the important evidence but clears out the background noise.
+
+---
+
+# 11. `reg_lambda` (The "Volume Control")
+**What it is:** L2 Regularization. While `reg_alpha` (L1) tries to delete useless clues, `reg_lambda` (L2) tries to make sure no single clue becomes too "loud" or powerful. It encourages the AI to be a "team player."
+
+> [!TIP]
+> **The "Shouting Witness" Analogy**
+> Imagine a detective is interviewing a witness who is **screaming** their testimony. Even if they are right, their loud volume makes it hard to hear anyone else. If that witness is actually wrong, their high volume will lead the whole investigation in the wrong direction.
+> 
+> By setting `reg_lambda: 1.0` (the default), you are telling the AI: **"I don't care how sure you are; no single rule is allowed to have 100% of the power. Turn the volume down and listen to the other trees."**
+
+### **The Mathematical Logic: The "Square Tax"**
+Unlike `reg_alpha` which uses a flat tax, `reg_lambda` uses a **Square Tax**. This means the louder a clue gets, the more it is punished.
+
+**The Internal Calculation:**
+- **Scenario A: A "Quiet" Rule (Weight = 2)**
+    - **Penalty:** $2^2 = 4$. 
+    - **Result:** The tax is small. The AI lets the rule stay mostly as it is.
+
+- **Scenario B: A "Loud" Rule (Weight = 10)**
+    - **Penalty:** $10^2 = 100$.
+    - **Result:** The tax is **huge!** The AI realizes that having such a "loud" rule is too expensive, so it forces the weight down (e.g., from 10 down to 3).
+
+**The Benefit:**
+It creates **Stability.** In fraud detection, one specific transaction might look extremely suspicious (an outlier). `reg_lambda` prevents the AI from over-reacting to that one transaction. It forces the model to spread the "blame" across many different trees, which is why your **ROC-AUC** stays stable even if the data changes slightly.
+
+**The Results Seesaw:**
+- **Higher (5.0 - 10.0)**: The AI becomes **Muted**. Every rule is forced to be very quiet and small. This makes the model very stable but might make it too "weak" to catch subtle fraud.
+- **Lower (0.001)**: The AI is **Aggressive**. It allows single rules to have massive power. This leads to a "jagged" model that is very likely to **Overfit** to weird outliers.
+- **Sweet Spot (1.0)**: The **"Balanced Team."** No single tree dominates the conversation, and everyone works together to find the fraud.
 
 ---
 
