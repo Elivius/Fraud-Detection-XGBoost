@@ -37,3 +37,14 @@ If you are a bank processing millions of transactions, you want a model that can
 
 ### 💡 The Big Lesson:
 A slightly lower score on a "Sample Test" is often **better** than a perfect score. In Machine Learning, we don't want a "Perfect Memorizer," we want a **"Smart Guesser."** 
+
+---
+
+### ❓ Question 4: What happens if I remove `subsample` (set it to 1.0)?
+**The Answer:** Your **Precision** will likely crash below your `MIN_PRECISION` rule in the real world. 
+
+Without the "Coach's Drill" (subsampling), the AI becomes obsessed with memorizing specific "weird" rows in the training data (the "Special Exception" rule). 
+*   **On Paper:** Your Precision looks amazing (90%+) because the AI memorized the practice questions.
+*   **In Reality:** The Final Exam has **different** weird people. Because the AI only learned how to handle the *specific* people from practice, it will start screaming "FRAUD!" at innocent new customers. 
+
+**Result:** Your Precision will drop from a "fake" 90% in practice to a "real" 2% on the exam. You will have failed the Bank Manager's safety limit! 📉👮‍♂️⛔

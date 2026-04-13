@@ -95,17 +95,65 @@ This guide explains how to play with the settings in your code (Step 4 of your n
 
 ---
 
-## 7. The "Pro" Settings (Brain Polish)
-**What they are:** Advanced rules used by experts to make the AI's logic even "cleaner" and more stable.
+## 7. `subsample` (The "Coach's Drill")
+**What it is:** Shuffling the rows of data every round to prevent memorization.
 
-- **`min_child_weight` (The "Source Requirement")**: 
-  - *Analogy*: A journalist who refuses to write a story unless at least 4 different people confirm it. It stops the AI from making up "gossip" about individual transactions.
-- **`reg_alpha` (The "Clutter Cutter")**: 
-  - *Analogy*: Throwing away tools you haven't used in a year. It forces the AI to be simpler by deleting useless clues.
-- **`subsample` (The "Coach's Drill")**: 
-  - *Analogy*: A Sudoku coach who randomly erases 20% of your practice clues every day. It forces the AI to learn the **general logic** instead of just memorizing specific rows.
-- **`colsample_bytree` (The "Limited Clues")**: 
-  - *Analogy*: Same as above, but instead of hiding *people* (rows), it hides *clues* (columns like Time or Amount). It prevents the AI from becoming obsessed with just one specific clue.
+- **Round 1 (Tree #1)**: Picking random 80% (160k rows).
+- **Round 2 (Tree #2)**: Picking a *different* random 80%.
+- **Round 3 (Tree #3)**: Picking another *different* random 80%.
+
+> [!IMPORTANT]
+> **The "Special Exception" Rule:**
+> If the AI sees Row #42 every single day, it might create a rule just for them: *"He is innocent ONLY if his V1 is exactly 3.42."* This is **Overfitting**. By hiding people sometimes, the AI has to find rules that work for everyone!
+
+**The Results Seesaw:**
+- **High (1.0)**: Fastest training, but high risk of **Overfitting** (Memorization).
+- **Low (0.1)**: The AI is too **"Stupid"** (Underfitting). It won't see enough fraud to learn.
+- **Sweet Spot (0.8)**: The **"Tough AI."** Stable results that work in the real world.
+
+---
+
+## 8. `min_child_weight` (The "Source Requirement")
+**What it is:** The AI's rule about how many "sources" it needs before believing a pattern.
+
+> [!TIP]
+> **The Journalist Analogy:**
+> - **Weight 1**: The journalist writes a story because **one** person told them a rumor. (High risk of gossip/noise).
+> - **Weight 10**: The journalist refuses to write the story unless at least **10 people** confirm it. (Much more reliable).
+
+**The Results Seesaw:**
+- **Higher (10+)** = Very safe and robust, but might miss "rare" fraud logic.
+- **Lower (1)** = Very aggressive, catches every detail, but likely to learn "gossip" (noise).
+
+---
+
+## 9. `reg_alpha` / `reg_lambda` (The "Complexity Taxes")
+**What it is:** A "tax" the AI has to pay if its brain gets too complicated.
+
+> [!TIP]
+> **The Toolbox Analogy:**
+> Imagine you have a toolbox. 
+> - **`reg_alpha`**: Forces you to throw away tools you haven't used in a year. It deletes useless clues.
+> - **`reg_lambda`**: Forces you to make sure no single tool is too heavy to carry. It balances the power of the clues.
+
+**The Results Seesaw:**
+- **Higher (1.0+)** = A "Lean and Mean" brain that only uses the most important clues.
+- **Lower (0.01)** = A "Cluttered" brain that might get distracted by useless details.
+
+---
+
+## 10. `colsample_bytree` (The "Limited Clues")
+**What it is:** Similar to `subsample`, but instead of hiding **people** (rows), it hides **clues** (columns).
+
+> [!TIP]
+> **The Detective Analogy:**
+> Imagine a detective solving a crime.
+> - **Without this (1.0)**: The detective always looks at fingerprints first. If the criminal is smart, they might trick the detective's obsession.
+> - **With this (0.8)**: We hide the fingerprints sometimes! Now the detective is forced to look at DNA, Footprints, and CCTV. It makes them a better overall detective.
+
+**The Results Seesaw:**
+- **Higher (1.0)** = The AI might become "obsessed" with one single clue (overfitting).
+- **Lower (0.5)** = Forces the AI to use variety, but it might miss the most obvious clues.
 
 ---
 
@@ -113,4 +161,4 @@ This guide explains how to play with the settings in your code (Step 4 of your n
 1. **Start** with the default settings.
 2. **Increase `scale_pos_weight`** until you are happy with how much Fraud you are catching (**Recall**).
 3. **If your Precision is too low** (too many false alarms), try reducing `max_depth` or lowering your `learning_rate`.
-4. **Always keep Early Stopping ON** while you are experimenting to save time!
+4. **Use `subsample` and `colsample_bytree`** to ensure your "Perfect Score" on your laptop actually works in the real world!
