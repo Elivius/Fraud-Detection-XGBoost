@@ -39,27 +39,27 @@ graph TD
 
     %% 5. Threshold Optimization
     subgraph Func_Optimal [Function: optimal_threshold]
-        P_Quiz[Define practice_quiz params]:::process
-        CV_Pred[cross_val_predict #3-Folds: Get blind probability scores]:::process
-        PR_Curve[precision_recall_curve: Test all 'What-If' dial settings]:::process
-        Cleanup[precisions Slice: Alignment fix]:::process
-        Find_Min[Find lowest Threshold where Precision >= min_prec]:::process
+        P_Quiz["IN: X_early_test, y_early_test<br/>Define practice_quiz params<br/>OUT: practice_quiz dict"]:::process
+        CV_Pred["IN: ai_model, X_train, y_train, n_folds=3, practice_quiz<br/>cross_val_predict — 3-Fold blind predictions<br/>OUT: cv_pred_prob float array shape N"]:::process
+        PR_Curve["IN: y_train, cv_pred_prob<br/>precision_recall_curve — Test all threshold dial settings<br/>OUT: precisions N+1, threshold N"]:::process
+        Cleanup["IN: precisions N+1<br/>precisions Slice — Alignment fix<br/>OUT: precisions sliced N"]:::process
+        Find_Min["IN: threshold N, precisions N, min_prec<br/>Find lowest Threshold where Precision >= min_prec<br/>OUT: perfect_threshold e.g. 0.2745"]:::process
     end
     Func_Optimal:::function
 
-    Train_Complete --> |Input: Trained model Brain + settings| Opt_Call(Call: optimal_threshold):::process
+    Train_Complete --> |Input: ai_model, X_train, y_train, X_early_test, y_early_test, min_prec| Opt_Call(Call: optimal_threshold):::process
     Opt_Call --> P_Quiz
-    P_Quiz --> CV_Pred
-    CV_Pred --> PR_Curve
-    PR_Curve --> Cleanup
-    Cleanup --> Find_Min
+    P_Quiz --> |practice_quiz dict| CV_Pred
+    CV_Pred --> |cv_pred_prob float array shape N| PR_Curve
+    PR_Curve --> |precisions N+1, threshold N| Cleanup
+    Cleanup --> |precisions sliced N, threshold N| Find_Min
     Find_Min --> |Return: perfect_threshold e.g., 0.2745| Main_Threshold_Found
 
     %% 6. Final Exam
     subgraph Func_Thresh_Pred [Function: thresholded_predict]
         Get_Proba[ai_model.predict_proba on Final X_test]:::process
         Apply_Rule[List Comprehension: Apply perfect_threshold e.g., >= 0.2745]:::process
-        Make_Array[Convert to np.array]:::process
+        Make_Array[Convert to np.array - predictions]:::process
     end
     Func_Thresh_Pred:::function
 
@@ -67,7 +67,7 @@ graph TD
     Pred_Call --> Get_Proba
     Get_Proba --> Apply_Rule
     Apply_Rule --> Make_Array
-    Make_Array --> |Return: Final 0/1 predictions| Main_Exam_Done
+    Make_Array --> |Return: predictions AND probabilities| Main_Exam_Done
 
     %% 7. Reporting
     subgraph Main_Report [Main: Generate Report Card]
@@ -75,7 +75,6 @@ graph TD
         Prec_Score[precision_score]:::output
         Rec_Score[recall_score]:::output
         F1_Score[f1_score]:::output
-        Final_Proba[ai_model.predict_proba Final Exam]:::process
         ROC_Score[roc_auc_score]:::output
     end
 
@@ -83,8 +82,7 @@ graph TD
     Main_Exam_Done --> |Compare: predictions vs y_test| Prec_Score
     Main_Exam_Done --> |Compare: predictions vs y_test| Rec_Score
     Main_Exam_Done --> |Compare: predictions vs y_test| F1_Score
-    Main_Exam_Done --> Final_Proba
-    Final_Proba --> ROC_Score
+    Main_Exam_Done --> |Compare: probabilities vs y_test| ROC_Score
 
     %% 8. Data Repositories
     Final_Data[(X_test, y_test Final Exam)]:::storage
@@ -100,5 +98,4 @@ graph TD
     Early_Data -.-> Model_Fit
     Train_Data -.-> CV_Pred
     Final_Data -.-> Get_Proba
-    Final_Data -.-> Final_Proba
 ```
